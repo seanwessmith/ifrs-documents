@@ -1,0 +1,37 @@
+{
+  "name": "ifrs",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "bun run build:packages && bun run build:apps",
+    "build:packages": "bun run --filter 'packages/*' build",
+    "build:apps": "bun run --filter 'apps/*' build",
+    "test": "bun test",
+    "lint": "bunx @biomejs/biome check .",
+    "format": "bunx @biomejs/biome format --write .",
+    "ifrs": "bun run apps/cli/src/index.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.8.3",
+    "@types/bun": "latest",
+    "@types/pdf-parse": "^1.1.5"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.490.0",
+    "cheerio": "^1.0.0-rc.12",
+    "commander": "^12.0.0",
+    "epub2": "^3.0.2",
+    "marked": "^12.0.0",
+    "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^4.0.379",
+    "postgres": "^3.4.3",
+    "zod": "^3.22.4"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

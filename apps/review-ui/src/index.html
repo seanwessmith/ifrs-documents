@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IFRS Review UI</title>
+    <style>
+        body {
+            font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f7;
+            color: #1d1d1f;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #007aff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .unit-card {
+            border: 1px solid #e5e5e7;
+            border-radius: 8px;
+            margin: 16px 0;
+            padding: 16px;
+            transition: all 0.2s ease;
+        }
+        
+        .unit-card:hover {
+            border-color: #007aff;
+            box-shadow: 0 2px 8px rgba(0,122,255,0.1);
+        }
+        
+        .unit-type {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #8e8e93;
+            margin-bottom: 8px;
+        }
+        
+        .unit-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #1d1d1f;
+        }
+        
+        .unit-content {
+            color: #424245;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+        
+        .confidence {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #34c759;
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .confidence.medium {
+            background: #ff9500;
+        }
+        
+        .confidence.low {
+            background: #ff3b30;
+        }
+        
+        .actions {
+            margin-top: 16px;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-approve {
+            background: #34c759;
+            color: white;
+        }
+        
+        .btn-approve:hover {
+            background: #28a745;
+        }
+        
+        .btn-reject {
+            background: #ff3b30;
+            color: white;
+        }
+        
+        .btn-reject:hover {
+            background: #dc3545;
+        }
+        
+        .btn-edit {
+            background: #8e8e93;
+            color: white;
+        }
+        
+        .btn-edit:hover {
+            background: #6c757d;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #8e8e93;
+        }
+        
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            padding: 16px;
+            background: #f9f9fb;
+            border-bottom: 1px solid #e5e5e7;
+        }
+        
+        select, input {
+            padding: 8px 12px;
+            border: 1px solid #d1d1d6;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        select:focus, input:focus {
+            outline: none;
+            border-color: #007aff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>IFRS Review Interface</h1>
+            <p>Review and validate extracted units</p>
+        </div>
+        
+        <div class="filter-bar">
+            <label>Document:</label>
+            <select id="documentSelect">
+                <option value="">Select a document...</option>
+            </select>
+            
+            <label>Unit Type:</label>
+            <select id="unitTypeSelect">
+                <option value="all">All Types</option>
+                <option value="functions">Functions</option>
+                <option value="claims">Claims</option>
+                <option value="definitions">Definitions</option>
+            </select>
+            
+            <label>Status:</label>
+            <select id="statusSelect">
+                <option value="pending">Pending Review</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+            </select>
+            
+            <button class="btn btn-approve" onclick="loadUnits()">Load Units</button>
+        </div>
+        
+        <div class="content">
+            <div id="unitsContainer">
+                <div class="loading">
+                    <p>Select a document and click "Load Units" to begin reviewing.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./app.tsx"></script>
+</body>
+</html>
