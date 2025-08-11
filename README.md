@@ -45,6 +45,25 @@ Before getting started, ensure you have:
 
 ## Quick Start
 
+### 🚀 One-Command Pipeline (Recommended)
+
+Process any document with a single command:
+
+```bash
+# Process a PDF with full pipeline
+bun run ingest-doc path/to/document.pdf
+
+# With custom metadata  
+bun run ingest-doc document.pdf --title "Financial Guide" --authors "John Doe"
+
+# Then search with AI
+EMBEDDING_TYPE=openai bun ifrs ask "how to calculate profit"
+```
+
+See [PIPELINE.md](PIPELINE.md) for complete documentation.
+
+### 📋 Manual Setup
+
 1. **Clone and Install**
    ```bash
    git clone <repository-url>
@@ -178,11 +197,8 @@ All units include:
 
 To continue development:
 
-1. **Test PDF Ingestion**: Implement end-to-end test with sample PDF
-2. **Complete Validation**: Implement all validation rules from spec
-3. **Add Embeddings**: Integrate vector embeddings for semantic search
-4. **Build Query System**: Implement hybrid FTS + vector search
-5. **Create Review UI**: Simple React interface for human review
+1. **Fix Embeddings**: Fix dimension mismatch: expected 1024, got 384
+2. **Create Review UI**: Simple React interface for human review
 
 ## Contributing
 

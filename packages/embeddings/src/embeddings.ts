@@ -27,10 +27,12 @@ export class ClaudeEmbeddings implements EmbeddingProvider {
 export class OpenAIEmbeddings implements EmbeddingProvider {
   private apiKey: string;
   private model: string;
+  private dimensions: number;
   
-  constructor(apiKey: string, model: string = 'text-embedding-3-small') {
+  constructor(apiKey: string, model: string = 'text-embedding-3-small', dimensions: number = 1024) {
     this.apiKey = apiKey;
     this.model = model;
+    this.dimensions = dimensions;
   }
 
   async embed(texts: string[]): Promise<number[][]> {
@@ -43,6 +45,7 @@ export class OpenAIEmbeddings implements EmbeddingProvider {
       body: JSON.stringify({
         model: this.model,
         input: texts,
+        dimensions: this.dimensions, // OpenAI v3 models support custom dimensions
       }),
     });
 
@@ -55,7 +58,7 @@ export class OpenAIEmbeddings implements EmbeddingProvider {
   }
 
   getDimensions(): number {
-    return this.model === 'text-embedding-3-small' ? 1536 : 1024;
+    return this.dimensions;
   }
 }
 
@@ -81,7 +84,7 @@ export class LocalEmbeddings implements EmbeddingProvider {
 }
 
 export function createEmbeddingProvider(config: Config): EmbeddingProvider {
-  const embeddingType = process.env.EMBEDDING_TYPE || 'local';
+  const embeddingType = process.env.EMBEDDING_TYPE || 'openai'; // Default to OpenAI for working embeddings
   
   switch (embeddingType) {
     case 'openai':
@@ -89,7 +92,8 @@ export function createEmbeddingProvider(config: Config): EmbeddingProvider {
       if (!openaiKey) {
         throw new Error('OPENAI_API_KEY is required for OpenAI embeddings');
       }
-      return new OpenAIEmbeddings(openaiKey);
+      // Use text-embedding-3-small with 1024 dimensions to match database
+      return new OpenAIEmbeddings(openaiKey, 'text-embedding-3-small', 1024);
     
     case 'claude':
       return new ClaudeEmbeddings(config.claude.apiKey);
