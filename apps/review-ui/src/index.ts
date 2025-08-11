@@ -1,6 +1,6 @@
 import index from './index.html';
-import { loadConfig } from '@ifrs/core';
-import { Database } from '@ifrs/db';
+import { loadConfig } from '../../../packages/core/src/index.ts';
+import { Database } from '../../../packages/db/src/index.ts';
 
 const config = loadConfig();
 

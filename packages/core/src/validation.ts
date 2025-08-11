@@ -1,4 +1,4 @@
-import type { FunctionDoc, Claim, Definition, ValidationResult, ValidationError, Config } from './types.js';
+import type { FunctionDoc, Claim, Definition, Formula, ValidationResult, ValidationError, Config } from './types.js';
 
 export function validateFunction(func: FunctionDoc, config: Config): ValidationResult {
   const errors: ValidationError[] = [];
@@ -133,11 +133,15 @@ export function validateDefinition(def: Definition, config: Config): ValidationR
 
   if (!def.definition?.trim()) {
     errors.push({ field: 'definition', message: 'Definition text is required' });
+  } else if (def.definition.length > 400) {
+    errors.push({ field: 'definition', message: 'Definition must be ≤ 400 characters', value: def.definition.length });
   }
 
-  // Validate span_ids
+  // Validate span_ids - enhanced quality gates
   if (!def.span_ids || def.span_ids.length === 0) {
     errors.push({ field: 'span_ids', message: 'At least one span_id is required for citations' });
+  } else if (def.span_ids.length > 3) {
+    errors.push({ field: 'span_ids', message: 'Maximum 3 span_ids allowed', value: def.span_ids.length });
   }
 
   // Check confidence threshold
@@ -175,6 +179,59 @@ function arraysEqual<T>(a: T[], b: T[]): boolean {
 function hasExcessiveQuotes(text: string, maxQuoteChars: number): boolean {
   const quotes = text.match(/"[^"]*"/g) || [];
   return quotes.some(quote => quote.length > maxQuoteChars);
+}
+
+export function validateFormula(formula: Formula, config: Config): ValidationResult {
+  const errors: ValidationError[] = [];
+
+  // Check required fields
+  if (!formula.name?.trim()) {
+    errors.push({ field: 'name', message: 'Formula name is required' });
+  }
+
+  if (!formula.expression?.trim()) {
+    errors.push({ field: 'expression', message: 'Formula expression is required' });
+  }
+
+  // Validate span_ids - enhanced quality gates
+  if (!formula.span_ids || formula.span_ids.length === 0) {
+    errors.push({ field: 'span_ids', message: 'At least one span_id is required for citations' });
+  } else if (formula.span_ids.length > 3) {
+    errors.push({ field: 'span_ids', message: 'Maximum 3 span_ids allowed', value: formula.span_ids.length });
+  }
+
+  // Check confidence threshold
+  if (formula.confidence < config.confidence.functions) {
+    errors.push({ 
+      field: 'confidence', 
+      message: `Confidence ${formula.confidence} below threshold ${config.confidence.functions}`,
+      value: formula.confidence 
+    });
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
+export function validateJsonString(jsonStr: string): ValidationResult {
+  const errors: ValidationError[] = [];
+  
+  try {
+    JSON.parse(jsonStr);
+  } catch (error) {
+    errors.push({
+      field: 'json',
+      message: `Invalid JSON: ${error instanceof Error ? error.message : 'Parse error'}`,
+      value: jsonStr
+    });
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
 }
 
 export function validateAllSpanIds(spanIds: string[], validSpanIds: Set<string>): ValidationResult {

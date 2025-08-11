@@ -1,4 +1,4 @@
-import type { Config } from '@ifrs/core';
+import type { Config } from '../../core/src/index.ts';
 
 export interface EmbeddingProvider {
   embed(texts: string[]): Promise<number[][]>;

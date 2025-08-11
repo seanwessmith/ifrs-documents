@@ -1,5 +1,5 @@
-import type { Span, Config, ExtractionResult } from '@ifrs/core';
-import { ulid } from '@ifrs/core';
+import type { Span, Config, ExtractionResult } from '../../core/src/index.ts';
+import { ulid } from '../../core/src/index.ts';
 import { callClaude, parseJsonResponse } from './claude.js';
 import { ClaimExtractionResponseSchema, type ClaimDraft } from './schemas.js';
 import { CLAIM_EXTRACTOR_SYSTEM_PROMPT, buildContextPrompt } from './prompts.js';
@@ -49,7 +49,8 @@ export async function extractClaims(
 
       results.push(...validClaims);
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Rate limiting: 2s base delay to avoid hitting limits
+      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
 
     } catch (error) {
       const errorMsg = `Window ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`;

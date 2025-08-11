@@ -72,6 +72,21 @@ CREATE TABLE functions (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Formulas table
+CREATE TABLE formulas (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  expression TEXT NOT NULL,
+  variables JSONB NOT NULL DEFAULT '[]',
+  notes JSONB NOT NULL DEFAULT '[]',
+  tags TEXT[] DEFAULT '{}',
+  span_ids UUID[] NOT NULL,
+  confidence REAL NOT NULL DEFAULT 0.75,
+  embedding VECTOR(1024),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Indexes for performance
 CREATE INDEX spans_document_idx ON spans(document_id);
 CREATE INDEX spans_role_idx ON spans(role);
@@ -90,6 +105,11 @@ CREATE INDEX functions_document_idx ON functions(document_id);
 CREATE INDEX functions_confidence_idx ON functions(confidence);
 CREATE INDEX functions_tags_idx ON functions USING GIN (tags);
 CREATE INDEX functions_fts ON functions USING GIN (to_tsvector('english', name || ' ' || purpose));
+
+CREATE INDEX formulas_document_idx ON formulas(document_id);
+CREATE INDEX formulas_confidence_idx ON formulas(confidence);
+CREATE INDEX formulas_tags_idx ON formulas USING GIN (tags);
+CREATE INDEX formulas_fts ON formulas USING GIN (to_tsvector('english', name || ' ' || expression));
 
 -- Vector indexes (create after data is loaded for better performance)
 -- CREATE INDEX definitions_embedding_idx ON definitions USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);

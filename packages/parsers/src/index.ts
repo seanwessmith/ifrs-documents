@@ -1,4 +1,4 @@
-import type { ParsedBlock, DocumentType } from '@ifrs/core';
+import type { ParsedBlock, DocumentType } from '../../core/src/index.ts';
 
 export interface DocumentParseResult {
   spans: ParsedBlock[];

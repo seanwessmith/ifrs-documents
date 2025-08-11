@@ -1,7 +1,7 @@
 import { Command } from 'commander';
-import { loadConfig } from '@ifrs/core';
-import { Database } from '@ifrs/db';
-import { createEmbeddingProvider } from '@ifrs/embeddings';
+import { loadConfig, formatCitations, type SpanCitation } from '../../../../packages/core/src/index.ts';
+import { Database } from '../../../../packages/db/src/index.ts';
+import { createEmbeddingProvider } from '../../../../packages/embeddings/src/index.ts';
 
 export const askCommand = new Command()
   .name('ask')
@@ -9,7 +9,8 @@ export const askCommand = new Command()
   .argument('<query>', 'Query string')
   .option('--topk <k>', 'Number of results to return', '5')
   .option('--units <units>', 'Unit types to search', 'functions,claims')
-  .option('--cite', 'Include citations')
+  .option('--cite [type]', 'Citation style: auto, full, or none', 'auto')
+  .option('--no-cite', 'Disable citations')
   .option('--no-vector', 'Disable vector search')
   .action(async (query: string, options) => {
     try {
@@ -17,6 +18,8 @@ export const askCommand = new Command()
       const db = new Database(config);
       const limit = parseInt(options.topk);
       const unitTypes = options.units.split(',').map((u: string) => u.trim());
+      const shouldCite = options.cite !== 'none' && !options.noCite;
+      const citeStyle = options.cite || 'auto';
       
       console.log(`🔍 Searching for: "${query}"`);
       console.log(`   Units: ${unitTypes.join(', ')}`);
@@ -95,6 +98,29 @@ export const askCommand = new Command()
         }
       }
       
+      // Collect all span IDs for batch citation lookup
+      const allSpanIds: string[] = [];
+      if (shouldCite) {
+        for (const result of allResults) {
+          if (result.span_ids?.length > 0) {
+            allSpanIds.push(...result.span_ids);
+          }
+        }
+      }
+      
+      // Batch fetch citations before closing database
+      const citationMap = new Map<string, {span_id: string, title: string, page: number}>();
+      if (shouldCite && allSpanIds.length > 0) {
+        try {
+          const citations = await db.getSpanCitations(allSpanIds);
+          for (const citation of citations) {
+            citationMap.set(citation.span_id, citation);
+          }
+        } catch (error) {
+          console.warn('Warning: Citation lookup failed, using fallback format');
+        }
+      }
+      
       await db.close();
       
       // Display results
@@ -110,7 +136,7 @@ export const askCommand = new Command()
         const result = allResults[i];
         const rank = i + 1;
         
-        console.log(`${rank}. ${formatResult(result, options.cite)}\n`);
+        console.log(`${rank}. ${formatResultWithCitations(result, shouldCite, citeStyle, citationMap)}\n`);
       }
       
       console.log(`💡 Tips:`);
@@ -124,7 +150,7 @@ export const askCommand = new Command()
     }
   });
 
-function formatResult(result: any, includeCitations: boolean): string {
+function formatResultWithCitations(result: any, includeCitations: boolean, citeStyle: string, citationMap: Map<string, {span_id: string, title: string, page: number}>): string {
   const confidence = result.confidence ? ` (conf: ${result.confidence.toFixed(2)})` : '';
   const distance = result.distance ? ` (dist: ${result.distance.toFixed(3)})` : '';
   
@@ -182,8 +208,18 @@ function formatResult(result: any, includeCitations: boolean): string {
   }
   
   if (includeCitations && result.span_ids?.length > 0) {
-    formatted += `
-   Citations: spans ${result.span_ids.slice(0, 3).join(', ')}${result.span_ids.length > 3 ? '...' : ''}`;
+    // Get citations from the pre-fetched map
+    const resultCitations = result.span_ids
+      .map((spanId: string) => citationMap.get(spanId))
+      .filter((citation: any) => citation !== undefined);
+    
+    if (resultCitations.length > 0) {
+      const formattedCitations = formatCitations(resultCitations);
+      formatted += `\n   Citations: ${formattedCitations}`;
+    } else {
+      // Fallback to span IDs if citation lookup failed
+      formatted += `\n   Citations: spans ${result.span_ids.slice(0, 3).join(', ')}${result.span_ids.length > 3 ? '...' : ''}`;
+    }
   }
   
   return formatted;

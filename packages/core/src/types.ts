@@ -83,10 +83,25 @@ export interface Definition {
   aliases: string[];
   span_ids: string[];
   confidence: number;
+  term_slug: string;
+  aliases_norm: string[];
+  tags?: string[];
 }
 
-export type Unit = FunctionDoc | Claim | Definition;
-export type UnitType = 'functions' | 'claims' | 'definitions';
+export interface Formula {
+  id: string;
+  documentId: string;
+  name: string;
+  expression: string;
+  variables: { name: string; description: string; source?: string }[];
+  notes: string[];
+  span_ids: string[];
+  confidence: number;
+  tags: string[];
+}
+
+export type Unit = FunctionDoc | Claim | Definition | Formula;
+export type UnitType = 'functions' | 'claims' | 'definitions' | 'formulas';
 
 export interface ParsedBlock {
   id: string;

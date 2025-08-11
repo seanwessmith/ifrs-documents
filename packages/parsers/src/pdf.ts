@@ -1,5 +1,5 @@
-import { ulid, hashSpan, normalizeWhitespace } from '@ifrs/core';
-import type { ParsedBlock, SpanRole } from '@ifrs/core';
+import { ulid, hashSpan, normalizeWhitespace } from '../../core/src/index.ts';
+import type { ParsedBlock, SpanRole } from '../../core/src/index.ts';
 
 interface PDFParseResult {
   spans: ParsedBlock[];

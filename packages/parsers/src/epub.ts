@@ -1,8 +1,8 @@
 // Use require to avoid bundling issues with epub2
 const epub2 = require('epub2');
 const EPub = epub2.EPub || epub2.default || epub2;
-import { ulid, hashSpan, normalizeWhitespace } from '@ifrs/core';
-import type { ParsedBlock, SpanRole } from '@ifrs/core';
+import { ulid, hashSpan, normalizeWhitespace } from '../../core/src/index.ts';
+import type { ParsedBlock, SpanRole } from '../../core/src/index.ts';
 import { writeFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';

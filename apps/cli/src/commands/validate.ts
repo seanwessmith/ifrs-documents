@@ -1,6 +1,6 @@
 import { Command } from 'commander';
-import { loadConfig, validateFunction, validateClaim, validateDefinition, validateAllSpanIds } from '@ifrs/core';
-import { Database } from '@ifrs/db';
+import { loadConfig, validateFunction, validateClaim, validateDefinition, validateAllSpanIds } from '../../../../packages/core/src/index.ts';
+import { Database } from '../../../../packages/db/src/index.ts';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 

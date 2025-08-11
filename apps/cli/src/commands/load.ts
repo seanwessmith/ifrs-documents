@@ -1,9 +1,12 @@
 import { Command } from 'commander';
-import { loadConfig } from '@ifrs/core';
-import { Database } from '@ifrs/db';
-import { createEmbeddingProvider, generateEmbeddings } from '@ifrs/embeddings';
+import { loadConfig, ulid } from '../../../../packages/core/src/index.ts';
+import { Database } from '../../../../packages/db/src/index.ts';
+import { createEmbeddingProvider, generateEmbeddings } from '../../../../packages/embeddings/src/index.ts';
+import { createBackfillData } from '../../../../packages/extractors/src/backfill.ts';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { createHash } from 'crypto';
+import type { Definition, Formula, FunctionDoc } from '../../../../packages/core/src/types.ts';
 
 export const loadCommand = new Command()
   .name('load')
@@ -22,7 +25,8 @@ export const loadCommand = new Command()
       const draftFiles = [
         { name: 'functions.jsonl', type: 'functions' },
         { name: 'claims.jsonl', type: 'claims' },
-        { name: 'definitions.jsonl', type: 'definitions' }
+        { name: 'definitions.jsonl', type: 'definitions' },
+        { name: 'formulas.jsonl', type: 'formulas' }
       ];
       
       let totalLoaded = 0;
@@ -45,13 +49,21 @@ export const loadCommand = new Command()
           continue;
         }
         
-        const units = lines.map(line => {
+        let units = lines.map(line => {
           const unit = JSON.parse(line);
           return {
             ...unit,
             documentId: documentId
           };
         });
+        
+        // Apply deduplication and enrichment based on CLAUDE.md spec
+        if (draftFile.type === 'definitions') {
+          units = (units as any[]).map(def => enrichDefinition(def, documentId));
+          units = deduplicateDefinitions(units as Definition[]);
+        } else if (draftFile.type === 'functions') {
+          units = deduplicateFunctions(units as FunctionDoc[]);
+        }
         
         // Insert units into database
         switch (draftFile.type) {
@@ -66,6 +78,10 @@ export const loadCommand = new Command()
           case 'definitions':
             await db.insertDefinitions(units);
             console.log(`  ✓ Loaded ${units.length} definitions`);
+            break;
+          case 'formulas':
+            await db.insertFormulas(units);
+            console.log(`  ✓ Loaded ${units.length} formulas`);
             break;
         }
         
@@ -140,6 +156,9 @@ export const loadCommand = new Command()
         }
       }
       
+      // Skip backfill for now
+      // console.log(`\nAdding backfill data for key financial formulas:`);
+      
       await db.close();
       
       console.log(`\n✅ Load completed successfully!`);
@@ -158,3 +177,105 @@ export const loadCommand = new Command()
       process.exit(1);
     }
   });
+
+function deduplicateDefinitions(definitions: Definition[]): Definition[] {
+  const seen = new Map<string, Definition>();
+  
+  for (const def of definitions) {
+    const key = `${def.documentId}:${def.term_slug}`;
+    const existing = seen.get(key);
+    
+    if (!existing) {
+      seen.set(key, def);
+    } else {
+      // Keep highest confidence, or merge if same confidence
+      if (def.confidence > existing.confidence) {
+        seen.set(key, def);
+      } else if (def.confidence === existing.confidence) {
+        // Merge span_ids and aliases
+        const mergedDef = {
+          ...existing,
+          span_ids: Array.from(new Set([...existing.span_ids, ...def.span_ids])),
+          aliases: Array.from(new Set([...existing.aliases, ...def.aliases])),
+          aliases_norm: Array.from(new Set([...existing.aliases_norm || [], ...def.aliases_norm || []]))
+        };
+        seen.set(key, mergedDef);
+      }
+    }
+  }
+  
+  return Array.from(seen.values());
+}
+
+function deduplicateFunctions(functions: FunctionDoc[]): FunctionDoc[] {
+  const seen = new Map<string, FunctionDoc>();
+  
+  for (const func of functions) {
+    const stepsHash = createHash('sha256')
+      .update(JSON.stringify(func.steps))
+      .digest('hex')
+      .substring(0, 16);
+    
+    const key = `${func.documentId}:${func.name}:${stepsHash}`;
+    const existing = seen.get(key);
+    
+    if (!existing) {
+      seen.set(key, func);
+    } else {
+      // Keep highest confidence
+      if (func.confidence > existing.confidence) {
+        seen.set(key, func);
+      }
+    }
+  }
+  
+  return Array.from(seen.values());
+}
+
+function createTermSlug(term: string): string {
+  return term
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') // Remove punctuation except hyphens and spaces
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .trim();
+}
+
+function normalizeAliases(aliases: string[]): string[] {
+  return aliases.map(alias => 
+    alias.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim()
+  );
+}
+
+function enrichDefinition(def: any, documentId: string): Definition {
+  const termSlug = createTermSlug(def.term || '');
+  const aliasesNorm = normalizeAliases(def.aliases || []);
+  
+  // Auto-tag finance definitions
+  const tags = def.tags || [];
+  const defText = (def.definition || '').toLowerCase();
+  const termText = (def.term || '').toLowerCase();
+  
+  if (termText.includes('profit') || termText.includes('margin') || 
+      termText.includes('ratio') || termText.includes('return') ||
+      defText.includes('profit') || defText.includes('revenue') || 
+      defText.includes('income') || defText.includes('asset')) {
+    if (!tags.includes('financial-metrics')) {
+      tags.push('financial-metrics');
+    }
+  }
+  
+  if (termText.includes('margin') || termText.includes('profitability') ||
+      defText.includes('profitability') || defText.includes('profitable')) {
+    if (!tags.includes('profitability')) {
+      tags.push('profitability');
+    }
+  }
+
+  return {
+    ...def,
+    documentId,
+    term_slug: termSlug,
+    aliases_norm: aliasesNorm.length > 0 ? aliasesNorm : [],
+    tags: tags.length > 0 ? tags : [],
+  };
+}

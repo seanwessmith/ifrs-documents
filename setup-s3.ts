@@ -21,7 +21,7 @@ async function setupS3() {
     await s3.send(new HeadBucketCommand({ Bucket: bucketName }));
     console.log(`✅ Bucket '${bucketName}' already exists`);
   } catch (error) {
-    if (error.$metadata?.httpStatusCode === 404) {
+    if ((error as any).$metadata?.httpStatusCode === 404) {
       // Bucket doesn't exist, create it
       console.log(`📦 Creating bucket '${bucketName}'...`);
       await s3.send(new CreateBucketCommand({ Bucket: bucketName }));

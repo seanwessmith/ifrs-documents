@@ -125,16 +125,10 @@ The system is designed around these core commands:
 
 ```bash
 # Ingest a document
-bun ifrs ingest <path|url> --type pdf --title "Document Title" --authors "Author1,Author2"
-
 # Extract units from document
-bun ifrs extract <documentId> --units functions,claims,definitions --model claude
-
 # Validate extracted units
-bun ifrs validate <documentId> --strict
-
 # Load validated units to database
-bun ifrs load <documentId> --to postgres
+bun run ingest-doc <path> --title "Document Title" --authors "Author1,Author2"
 
 # Query the knowledge base
 bun ifrs ask "<query>" --topk 5 --units functions,claims --cite

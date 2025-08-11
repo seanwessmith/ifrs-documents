@@ -1,7 +1,7 @@
 import postgres from 'postgres';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import type { Config, Document, Span, Definition, Claim, FunctionDoc } from '@ifrs/core';
+import type { Config, Document, Span, Definition, Claim, FunctionDoc, Formula } from '../../core/src/index.ts';
 
 export class Database {
   private sql: postgres.Sql;
@@ -115,18 +115,26 @@ export class Database {
   }
 
   async insertDefinitions(defs: Omit<Definition, 'id'>[]): Promise<void> {
-    await this.sql`
-      INSERT INTO definitions (document_id, term, definition, aliases, span_ids, confidence, embedding)
-      SELECT * FROM ${this.sql(defs.map(def => [
-        def.documentId,
-        def.term,
-        def.definition,
-        def.aliases,
-        def.span_ids,
-        def.confidence,
-        null, // embedding will be added later
-      ]))}
-    `;
+    // Insert definitions one by one to avoid escapeIdentifier issues
+    for (const def of defs) {
+      await this.sql`
+        INSERT INTO definitions (
+          document_id, term, definition, aliases, span_ids, confidence, embedding, term_slug, aliases_norm, tags
+        )
+        VALUES (
+          ${def.documentId},
+          ${def.term},
+          ${def.definition},
+          ${def.aliases},
+          ${def.span_ids},
+          ${def.confidence},
+          null,
+          ${def.term_slug || null},
+          ${def.aliases_norm || null},
+          ${def.tags || null}
+        )
+      `;
+    }
   }
 
   async updateDefinitionEmbeddings(updates: Array<{ id: string; embedding: number[] }>): Promise<void> {
@@ -141,19 +149,24 @@ export class Database {
   }
 
   async insertClaims(claims: Omit<Claim, 'id'>[]): Promise<void> {
-    await this.sql`
-      INSERT INTO claims (document_id, subject, predicate, object, qualifiers, span_ids, confidence, embedding)
-      SELECT * FROM ${this.sql(claims.map(claim => [
-        claim.documentId,
-        claim.subject,
-        claim.predicate,
-        claim.object,
-        claim.qualifiers,
-        claim.span_ids,
-        claim.confidence,
-        null, // embedding will be added later
-      ]))}
-    `;
+    // Insert claims one by one to avoid escapeIdentifier issues
+    for (const claim of claims) {
+      await this.sql`
+        INSERT INTO claims (
+          document_id, subject, predicate, object, qualifiers, span_ids, confidence, embedding
+        )
+        VALUES (
+          ${claim.documentId},
+          ${claim.subject},
+          ${claim.predicate},
+          ${claim.object},
+          ${JSON.stringify(claim.qualifiers)}::jsonb,
+          ${claim.span_ids},
+          ${claim.confidence},
+          null
+        )
+      `;
+    }
   }
 
   async updateClaimEmbeddings(updates: Array<{ id: string; embedding: number[] }>): Promise<void> {
@@ -199,6 +212,38 @@ export class Database {
       const vectorStr = '[' + update.embedding.join(',') + ']';
       await this.sql`
         UPDATE functions 
+        SET embedding = ${vectorStr}::vector
+        WHERE id = ${update.id}
+      `;
+    }
+  }
+
+  async insertFormulas(formulas: Omit<Formula, 'id'>[]): Promise<void> {
+    for (const formula of formulas) {
+      await this.sql`
+        INSERT INTO formulas (
+          document_id, name, expression, variables, notes, tags, span_ids, confidence, embedding
+        )
+        VALUES (
+          ${formula.documentId},
+          ${formula.name},
+          ${formula.expression},
+          ${JSON.stringify(formula.variables)}::jsonb,
+          ${JSON.stringify(formula.notes)}::jsonb,
+          ${formula.tags},
+          ${formula.span_ids},
+          ${formula.confidence},
+          null
+        )
+      `;
+    }
+  }
+
+  async updateFormulaEmbeddings(updates: Array<{ id: string; embedding: number[] }>): Promise<void> {
+    for (const update of updates) {
+      const vectorStr = '[' + update.embedding.join(',') + ']';
+      await this.sql`
+        UPDATE formulas 
         SET embedding = ${vectorStr}::vector
         WHERE id = ${update.id}
       `;
@@ -420,5 +465,23 @@ export class Database {
       SELECT COUNT(*) as count FROM spans WHERE id = ANY(${spanIds})
     `;
     return result.count === spanIds.length;
+  }
+
+  async getSpanCitations(spanIds: string[]): Promise<Array<{span_id: string, title: string, page: number}>> {
+    if (spanIds.length === 0) return [];
+    
+    const results = await this.sql`
+      SELECT s.id AS span_id, d.title, COALESCE(s.page, 0) AS page
+      FROM spans s
+      JOIN documents d ON d.id = s.document_id
+      WHERE s.id = ANY(${spanIds})
+      ORDER BY d.title, s.page
+    `;
+    
+    return results.map(row => ({
+      span_id: row.span_id,
+      title: row.title,
+      page: row.page
+    }));
   }
 }

@@ -49,16 +49,37 @@ export const ClaimSchema = z.object({
 
 export const DefinitionSchema = z.object({
   term: z.string().max(120),
-  definition: z.string(),
+  definition: z.string().max(400),
   aliases: z.array(z.string()),
-  span_ids: z.array(z.string()),
+  span_ids: z.array(z.string()).min(1).max(3),
   confidence: z.number().min(0).max(1),
+  term_slug: z.string().optional(),
+  aliases_norm: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 export const FunctionExtractionResponseSchema = z.array(FunctionDocSchema);
 export const ClaimExtractionResponseSchema = z.array(ClaimSchema);
+export const FormulaVariableSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  source: z.string().optional(),
+});
+
+export const FormulaSchema = z.object({
+  name: z.string(),
+  expression: z.string(),
+  variables: z.array(FormulaVariableSchema),
+  notes: z.array(z.string()),
+  span_ids: z.array(z.string()).min(1).max(3),
+  confidence: z.number().min(0).max(1),
+  tags: z.array(z.string()),
+});
+
 export const DefinitionExtractionResponseSchema = z.array(DefinitionSchema);
+export const FormulaExtractionResponseSchema = z.array(FormulaSchema);
 
 export type FunctionDocDraft = z.infer<typeof FunctionDocSchema>;
 export type ClaimDraft = z.infer<typeof ClaimSchema>;
 export type DefinitionDraft = z.infer<typeof DefinitionSchema>;
+export type FormulaDraft = z.infer<typeof FormulaSchema>;

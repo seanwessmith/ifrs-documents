@@ -15,7 +15,8 @@
     "format": "bunx @biomejs/biome format --write .",
     "ifrs": "bun run apps/cli/src/index.ts",
     "ingest-doc": "bun scripts/ingest-document.ts",
-    "pipeline": "bun scripts/ingest-document.ts"
+    "pipeline": "bun scripts/ingest-document.ts",
+    "estimate-cost": "bun scripts/estimate-cost.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.8.3",

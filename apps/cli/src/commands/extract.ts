@@ -1,7 +1,7 @@
 import { Command } from 'commander';
-import { loadConfig } from '@ifrs/core';
-import { Database } from '@ifrs/db';
-import { extractFunctions, extractClaims, extractDefinitions } from '@ifrs/extractors';
+import { loadConfig } from '../../../../packages/core/src/index.ts';
+import { Database } from '../../../../packages/db/src/index.ts';
+import { extractFunctions, extractClaims, extractDefinitions } from '../../../../packages/extractors/src/index.ts';
 import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 

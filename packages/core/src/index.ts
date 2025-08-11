@@ -3,3 +3,4 @@ export * from './hash.js';
 export * from './io.js';
 export * from './config.js';
 export * from './validation.js';
+export * from './citations.js';

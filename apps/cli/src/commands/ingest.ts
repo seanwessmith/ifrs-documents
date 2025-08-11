@@ -1,7 +1,7 @@
 import { Command } from 'commander';
-import { loadConfig, readFileOrUrl, hashDocument, ulid } from '@ifrs/core';
-import { Database } from '@ifrs/db';
-import { parseDocument } from '@ifrs/parsers';
+import { loadConfig, readFileOrUrl, hashDocument, ulid } from '../../../../packages/core/src/index.ts';
+import { Database } from '../../../../packages/db/src/index.ts';
+import { parseDocument } from '../../../../packages/parsers/src/index.ts';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
